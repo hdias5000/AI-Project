@@ -1,0 +1,49 @@
+Group Name: algorizma
+Rishab Garg: 796799
+Hasitha Dias: 789929
+
+
+  1.  Describing the Structure of solution in terms of Module and Classes
+We have 4 modules implemented called Player, Node, Board and Alpha-Beta.
+Player: We have implemented the main init(), action() and update() methods in this module. This module also calls the relevant Alpha-Beta functions, from the Alpha-Beta class, depending on the current Phase
+Node: This is a struct used to store information about every root/node/branch when searching through the Alpha-Beta algorithm for the best move.
+Board: This class implements all the functionalities required by the board. It also includes the evaluation functions which enables easy calculation of evaluation scores.
+Alpha-beta: This class implements the different Alpha-Beta Pruning MinMax  algorithms for each phase and stores the best feature multipliers for every move.
+In order to improve the algorithm and reduce the number of nodes visited, we tried checking whether any state/move or any of its reflections are repeated but this method ended up reducing our performance. This would be a valuable addition in a system with no constraints where much deeper depths can be visited.
+
+   2.  Approach taken during implementation
+We have applied alpha beta pruning with cutoff depth set to implement the best action moved by player. We have different strategy implemented for placing phase and moving phase.
+I) Placing Phase : Our evaluation function implements 2 features, center concentration and whether our player gets killed. Basically we emphasize on having more pieces in the center, we do this by assigning a score for each position on the board in a matrix and we give a higher score for positions in the middle. Our second feature is to consider whether our player gets killed during the placing phase and since this is a major problem we gave it a good weight. We have tried different weights for these two features and came out that 100, 1000 were good weights for respective features. We made our placing phase depth 2 as it helps to prevent suicide moves because the available options for a piece to have is too much as it can be placed anywhere it finds a empty position, thus gives a huge number of branching factor. Reducing the depth to 2 has immensely increased the performance of our implementation.
+II) Moving Phase: Our Moving phase implemented features that includes 4 main strategies namely center concentration, defense strategy, attacking strategy and the number of pieces killed.
+Centre concentration : tries to make player be in center that helps to non-eliminate our pieces while shrinking of the board.
+Defense strategy :  helps to make as much clusters as possible for our player. We calculated total number of adjacent pieces with our pieces in all given 6 directions and added all the counts of each player with its adjacent piece. The more the count the more are pieces bound together and better the state is at defense.
+Number of pieces killed : Helps to make difference of our piece and opponent pieces more and tries to kill where possible. This enables us to make sure that we choose the path where the opponent gets killed and our pieces stay alive.
+Attacking strategy : It checks the most clustered white pieces and least clustered black piece. If we have more number of pieces in white cluster than black cluster, we try to go and kill the opponent piece by minimizing the distance between them.
+	We before tried to get each white piece distance with each black
+Piece small if we have that white piece cluster more than black and
+Average the distance of clusters with total. But this strategy had a complexity of nW*nB and is not linear, thus we focused on taking maximum White piece clustered distance with minimum black piece cluster. Its complexity is O(nW)+O(nB)  where nW and nB are number of white and   black pieces.
+
+III) Depth Change: Due to time constraints, it is not possible to have a high depth due to the massive branching factor. Therefore, we decided to implement a dynamic depth where our depth changes according to the performance of the action time making sure that the programs never exceeds the time constraints.
+
+
+Machine Learning Attempt to get flexible depth model and parameters tuned.
+We have tried to make our depth of moving phase flexible by trying to first getting the best parameters of our features tuned by creating the random possible combination of weights assigned to feature.
+We changed our parameters and tried to minimize this (best score of final board state - evaluated state of board) and came up with the best combination of combined features. However, this was not much efficient therefore we came up with the strategy of how good is the state of the board. Before exploring alpha beta pruning, we check how many more length of clusters we have than opponent piece and then we can easily say that board is good in attacking while if we have more clusters of our player bundled together, it’s good for defending. We have a default on defending however, if the state of the board is good enough(>75%) we give more weight to the attacking feature compared to defending.
+With those combinations, We build a model which trains with following attributes like Our possible available moves and opponent available moves , total moves actually performed, time taken to perform those moves and the depth of alpha beta.
+For building training instances, every time player performed action we gave a random depth and calculated the total time taken to perform that action. We build the model by running against different players with different parameters. Linear regression helped to predict the time taken to perform the action on given available moves of player, depth. We try to predict the time by these through our model and see the time taken to complete the move should be minimal and is under constrained and try to always use the given time to play the game i.e. 120 seconds.
+We have tried to also have a code implemented to check similar states that don’t explore the further states. There were total 8 possible same state of each board. To check each root’s child that if the child is not same as visited child, we don’t explore that child further. We tried checking this similar state of board for only depth>4 because for less than depth 4, it’s no point of checking similar states as it tries to append all state of child which is O(n) insertion for each child in root where n is number of children in root that are visited. The time we save to not explore the states is almost similar to time taken to add pieces of child of root.
+Model Training for Predicting depth:- Due to available time we could not train our model much with flexible depth but we have tried to get a decent amount of training model built and when we notice our model is giving accuracy less than 50%, we tried to implement the dynamic depth method as explained in Strategies.
+In worst case scenario, we can have estimation of time taken to explore the nodes by formulae given, if w are total white pieces and b are total black piece, d the depth of alpha beta. We can have prediction of time by checking the total nodes explored by root with formulae given by : (4*w)+(4*w*4*b)+(4*w+4*b+4*w)...d
+If d =1 : (4*w)
+If d=2 : (4*w)+(4*w+4*b)
+If d=3 : (4*w)+(4*w+4*b)+(4*w+4*b+4*w)
+If d=4 : (4*w)+(4*w+4*b)+(4*w+4*b+4*w) +(4*w+4*b+4*w+4*b)
+With each depth you have to explore each nodes for corresponding player moves.
+Thus we can have average time taken to perform one node and get the total time taken to explore these nodes with given depth too.
+When we tried to perform it, it gave some false results because there are also other factors to be included like O(evaluation) and moreover this number is huge which also gave some false results and made us go out of constraint limit of 120 seconds.
+
+
+
+Added Modules for learning model:
+Due to the constraint timing, we could not build a good training model to predict the time take for action from given depth and total moves on board.
+We build our training model from refereeHelper.py and generated csv for given attributes of a game. We also ran game too many times and came out that if we only predict the model with total timing less than 1.2, the accuracy was 75% while for the whole data was 1.2% with the help of Linear Regression classifier. We have submitted the csv files for training our model.
